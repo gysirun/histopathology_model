@@ -14,8 +14,8 @@
 # git push origin main
 
 
-# git add main.py
-# git commit -m "Оновлено main.py"
+# git add .dockerigrone
+# git commit -m "igno"
 # git push origin main
 
 
@@ -48,10 +48,6 @@ from torch import nn
 from torchvision import transforms
 from transformers import AutoTokenizer
 
-# ============================================================
-# 1️⃣ FastAPI додаток
-# ============================================================
-
 app = FastAPI(title="Medical Caption Generator")
 
 app.add_middleware(
@@ -75,25 +71,13 @@ async def limit_upload_size(request: Request, call_next):
     return await call_next(request)
 
 
-# ============================================================
-# 2️⃣ CUDA / CPU
-# ============================================================
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using:", device)
 
 
-# ============================================================
-# 3️⃣ Tokenizer
-# ============================================================
-
 tokenizer = AutoTokenizer.from_pretrained("my_tokenizer", local_files_only=True)
 vocab_size = tokenizer.vocab_size
 
-
-# ============================================================
-# 4️⃣ Модель (без змін архітектури, але з оптимізаціями)
-# ============================================================
 
 def extract_patches(image_tensor, patch_size=16):
     bs, c, h, w = image_tensor.size()
@@ -244,10 +228,6 @@ class VisionEncoderDecoder(nn.Module):
         return decoded
 
 
-# ============================================================
-# 5️⃣ Ініціалізація моделі
-# ============================================================
-
 caption_model = VisionEncoderDecoder(
     image_size=128,
     channels_in=3,
@@ -265,10 +245,6 @@ for p in caption_model.parameters():
     p.requires_grad = False
 
 
-# ============================================================
-# 6️⃣ Трансформації
-# ============================================================
-
 transform = transforms.Compose([
     transforms.Resize(128),
     transforms.CenterCrop(128),
@@ -280,9 +256,6 @@ transform = transforms.Compose([
 ])
 
 
-# ============================================================
-# 7️⃣ Прискорена генерація підпису (з KV-cache)
-# ============================================================
 
 @torch.no_grad()
 def generate_caption(image_path, max_len=50):
@@ -308,11 +281,6 @@ def generate_caption(image_path, max_len=50):
 
     return tokenizer.decode(generated[0].tolist(), skip_special_tokens=True)
 
-
-# ============================================================
-# 8️⃣ API
-# ============================================================
-
 @app.post("/api/upload")
 async def upload_images(files: list[UploadFile] = File(...)):
     results = []
@@ -337,9 +305,6 @@ async def upload_images(files: list[UploadFile] = File(...)):
     return {"results": results}
 
 
-# ============================================================
-# 9️⃣ Статика
-# ============================================================
-
 app.mount("/uploaded_images", StaticFiles(directory=UPLOAD_DIR), name="uploaded")
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+
