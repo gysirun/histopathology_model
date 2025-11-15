@@ -8,6 +8,30 @@
 # валідація файлів
 # підготовка до продакшн-деплою
 
+# git status
+# git add .
+# git commit -m "Оновлення всіх файлів"
+# git push origin main
+
+
+# git add main.py
+# git commit -m "Оновлено main.py"
+# git push origin main
+
+
+# # разово :
+# git lfs install
+# git lfs track "*.pth"
+# git add .gitattributes
+# git commit -m "Налаштування Git LFS для .pth файлів"
+# git push origin main
+
+# # потім :
+# git add your_model.pth
+# git commit -m "Оновлено модель"
+# git push origin main
+
+
 
 import os
 import uuid
