@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>Генератор медичних описів</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .spinner {
+      border: 4px solid rgba(0,0,0,0.1);
+      border-left-color: #4B5563;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4">🩺 Завантажте зображення — отримаєте опис</h1>
+
+    <div id="drop" class="border-dashed border-4 border-gray-300 rounded-lg p-8 text-center mb-4 bg-white">
+      Перетягніть зображення сюди або 
+      <label class="text-blue-600 underline cursor-pointer">
+        <input id="fileInput" type="file" multiple class="hidden" accept="image/*"> оберіть файл
+      </label>
+      <p class="text-sm text-gray-500 mt-2">Підтримуються: jpg, png</p>
+    </div>
+
+    <button id="uploadBtn" class="bg-blue-600 text-white px-4 py-2 rounded mb-6">
+      Завантажити
+    </button>
+
+    <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+  </div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+let filesToUpload = [];
+
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('bg-gray-50'); });
+drop.addEventListener('dragleave', () => { drop.classList.remove('bg-gray-50'); });
+drop.addEventListener('drop', (e) => {
+  e.preventDefault();
+  drop.classList.remove('bg-gray-50');
+  const items = e.dataTransfer.files;
+  for (let i=0;i<items.length;i++) filesToUpload.push(items[i]);
+  showPreview();
+});
+
+fileInput.addEventListener('change', (e) => {
+  for (let f of e.target.files) filesToUpload.push(f);
+  showPreview();
+});
+
+function showPreview(){
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+  filesToUpload.forEach((file, idx) => {
+    const url = URL.createObjectURL(file);
+    results.innerHTML += `
+      <div id="box-${idx}" class="bg-white p-3 rounded shadow text-center">
+        <img src="${url}" class="w-full h-48 object-cover rounded mb-2">
+        <p class="text-gray-500">Файл: ${file.name}</p>
+        <p class="caption text-sm text-gray-700 mt-2">Очікування... <span class="spinner"></span></p>
+      </div>`;
+  });
+}
+
+uploadBtn.addEventListener('click', async () => {
+  if (filesToUpload.length === 0) { alert('Оберіть файли'); return; }
+  const form = new FormData();
+  filesToUpload.forEach(f => form.append('files', f));
+
+  uploadBtn.disabled = true; 
+  uploadBtn.textContent = 'Завантаження...';
+
+  const resp = await fetch('/api/upload', { method: 'POST', body: form });
+  const data = await resp.json();
+
+  uploadBtn.disabled = false; 
+  uploadBtn.textContent = 'Завантажити';
+
+  // Відобразити результати
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = '';
+  data.results.forEach(r => {
+    resultsDiv.innerHTML += `
+      <div class="bg-white p-3 rounded shadow text-center">
+        <img src="${r.url}" class="w-full h-48 object-cover rounded mb-2">
+        <p class="text-gray-700 font-semibold mt-2">${r.caption}</p>
+      </div>
+    `;
+  });
+
+  filesToUpload = [];
+});
+</script>
+</body>
+</html>

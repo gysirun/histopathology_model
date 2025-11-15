@@ -1,0 +1,4 @@
+__pycache__
+uploaded_images
+*.pth
+*.pt

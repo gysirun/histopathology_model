@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>Генератор медичних описів</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .spinner {
+      border: 4px solid rgba(0,0,0,0.1);
+      border-left-color: #4B5563;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="flex flex-col items-center justify-center min-h-screen text-center">
+    <h1 class="text-3xl font-bold mb-6">🩺 Завантажте зображення — отримаєте опис</h1>
+
+    <div id="drop" class="border-dashed border-4 border-gray-300 rounded-lg p-8 bg-white text-center w-80 h-80 flex items-center justify-center mb-4">
+      <div>
+        Перетягніть зображення сюди або 
+        <label class="text-blue-600 underline cursor-pointer">
+          <input id="fileInput" type="file" multiple class="hidden" accept="image/*"> оберіть файл
+        </label>
+        <p class="text-sm text-gray-500 mt-2">Підтримуються: jpg, png</p>
+      </div>
+    </div>
+
+    <div id="results" class="flex flex-col items-center"></div>
+  </div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const resultsDiv = document.getElementById('results');
+let filesToUpload = [];
+let cancelled = false;
+
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('bg-gray-50'); });
+drop.addEventListener('dragleave', () => { drop.classList.remove('bg-gray-50'); });
+drop.addEventListener('drop', (e) => {
+  e.preventDefault();
+  drop.classList.remove('bg-gray-50');
+  const items = e.dataTransfer.files;
+  for (let i=0;i<items.length;i++) filesToUpload.push(items[i]);
+  showPreview();
+});
+
+fileInput.addEventListener('change', (e) => {
+  for (let f of e.target.files) filesToUpload.push(f);
+  showPreview();
+});
+
+function showPreview(){
+  drop.style.display = 'none';
+  resultsDiv.innerHTML = '';
+  const file = filesToUpload[0];
+  const url = URL.createObjectURL(file);
+  resultsDiv.innerHTML = `
+    <div id="imageBox" class="bg-white p-4 rounded shadow text-center w-80">
+      <img src="${url}" class="w-80 h-80 object-cover rounded mb-4 mx-auto">
+      <div class="flex justify-center space-x-4">
+        <button id="analyzeBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Аналіз</button>
+        <button id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Почати заново</button>
+      </div>
+      <p id="status" class="text-gray-700 mt-4 text-sm hidden">Очікування... <span class="spinner"></span></p>
+    </div>`;
+  
+  document.getElementById('analyzeBtn').addEventListener('click', analyze);
+  document.getElementById('resetBtn').addEventListener('click', resetPage);
+}
+
+async function analyze(){
+  cancelled = false;
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const status = document.getElementById('status');
+  const resetBtn = document.getElementById('resetBtn');
+  analyzeBtn.disabled = true;
+  resetBtn.disabled = false;
+  status.classList.remove('hidden');
+
+  const form = new FormData();
+  filesToUpload.forEach(f => form.append('files', f));
+
+  try {
+    const resp = await fetch('/api/upload', { method: 'POST', body: form });
+    const data = await resp.json();
+    if (cancelled) return; // якщо користувач натиснув "Почати заново", нічого не показуємо
+    status.classList.add('hidden');
+
+    const result = data.results[0];
+    document.getElementById('imageBox').innerHTML = `
+      <img src="${result.url}" class="w-80 h-80 object-cover rounded mb-4 mx-auto">
+      <p class="text-gray-700 font-semibold mt-2">${result.caption}</p>
+      <button id="resetBtn" class="bg-blue-600 text-white px-4 py-2 rounded mt-4">Почати заново</button>
+    `;
+    document.getElementById('resetBtn').addEventListener('click', resetPage);
+  } catch (err) {
+    alert('Помилка під час аналізу.');
+    console.error(err);
+  }
+}
+
+function resetPage(){
+  cancelled = true;
+  filesToUpload = [];
+  resultsDiv.innerHTML = '';
+  drop.style.display = 'flex';
+}
+</script>
+</body>
+</html>
