@@ -1,11 +1,13 @@
 FROM python:3.10-slim
 
 # ─────────────────────────────────────────────
-# 1. Оновлення системи та залежності
+# 1. Оновлення системи та встановлення залежностей
 # ─────────────────────────────────────────────
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::Check-Valid-Until=false && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libgl1-mesa-glx \
+        && rm -rf /var/lib/apt/lists/*
 
 # ─────────────────────────────────────────────
 # 2. Робоча директорія
