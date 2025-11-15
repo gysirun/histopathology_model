@@ -1,6 +1,5 @@
 FROM python:3.10-slim
 
-# Базові пакети для збірки та Pillow / Torch
 RUN apt-get update -o Acquire::Check-Valid-Until=false && \
     apt-get install -y --no-install-recommends \
         build-essential \
